@@ -1,0 +1,23 @@
+name: amazon-ssm-agent
+version: '2.0.0.0'
+summary: Agent to enable remote management of your Amazon EC2 instance configuration.
+description: |
+  The SSM Agent runs on EC2 instances and enables you to quickly and
+  easily execute remote commands or scripts against one or more
+  instances. The agent uses SSM documents. When you execute a command,
+  the agent on the instance processes the document and configures the
+  instance as specified. Currently, the SSM Agent and Run Command
+  enable you to quickly run Shell scripts on an instance using the
+  AWS-RunShellScript SSM document.
+
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: devmode # use 'strict' once you have the right plugs and slots
+apps:
+  amazon-ssm-agent:
+    plugs: []
+    command: amazon-ssm-agent
+parts:
+  aws-sdk-go:
+    source: .
+    plugin: go
+    go-importpath: https://github.com/aws/aws-sdk-go
