@@ -1,6 +1,3 @@
-# TODO:
-# The agent currently hardcodes paths. Open a PR to make these configurable:
-# https://github.com/aws/amazon-ssm-agent/blob/master/agent/appconfig/constants_unix.go 
 name: amazon-ssm-agent
 version: '2.2.30.0'
 summary: Agent to enable remote management of your Amazon EC2 instance configuration
@@ -17,7 +14,8 @@ apps:
     amazon-ssm-agent:
       command: amazon-ssm-agent
       daemon: simple
-      plugs: [network-bind]
+      plugs:
+	- network-bind
     ssm-cli:
       command: ssm-cli
       aliases: [ssm-cli]
