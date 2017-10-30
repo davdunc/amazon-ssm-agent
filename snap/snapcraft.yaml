@@ -8,14 +8,14 @@ description: |
   processes the document and configures the instance as specified. Currently,
   the SSM Agent and Run Command enable you to quickly run Shell scripts on an
   instance using the AWS-RunShellScript SSM document.
-confinement: devmode
+confinement: classic
 grade: stable
 apps:
     amazon-ssm-agent:
       command: amazon-ssm-agent
       daemon: simple
       plugs:
-	- network-bind
+        - network-bind
     ssm-cli:
       command: ssm-cli
       aliases: [ssm-cli]
