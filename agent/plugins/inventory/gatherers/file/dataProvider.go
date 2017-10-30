@@ -1,7 +1,6 @@
 package file
 
 import (
-	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -18,10 +17,9 @@ import (
 )
 
 type filterObj struct {
-	Path         string
-	Pattern      []string
-	Recursive    bool
-	DirScanLimit *int
+	Path      string
+	Pattern   []string
+	Recursive bool
 }
 
 type fileInfoObject struct {
@@ -30,12 +28,8 @@ type fileInfoObject struct {
 	path string
 }
 
-// Limits to help keep file information under item size limit and prevent long scanning.
-// The Dir Limits can be configured through input parameters
-const FileCountLimit = 500
+const FileCountLimit = 1000
 const FileCountLimitExceeded = "File Count Limit Exceeded"
-const DirScanLimit = 5000
-const DirScanLimitExceeded = "Directory Scan Limit Exceeded"
 
 //decoupling for easy testability
 var readDirFunc = ReadDir
@@ -44,8 +38,6 @@ var getFullPath func(path string, mapping func(string) string) (string, error)
 var filepathWalk = filepath.Walk
 var getFilesFunc = getFiles
 var getMetaDataFunc = getMetaData
-var DirScanLimitError = errors.New(DirScanLimitExceeded)
-var FileCountLimitError = errors.New(FileCountLimitExceeded)
 
 // ReadDir is a wrapper on ioutil.ReadDir for easy testability
 func ReadDir(dirname string) ([]os.FileInfo, error) {
@@ -99,39 +91,30 @@ func exists(path string) (bool, error) {
 	return false, err
 }
 
-func getFiles(log log.T, path string, pattern []string, recursive bool, fileLimit int, dirLimit int) (validFiles []string, err error) {
+func getFiles(log log.T, path string, pattern []string, recursive bool) (data []model.FileData, err error) {
 	var ex bool
 	ex, err = existsPath(path)
+	var validFiles []string
 	if err != nil {
 		LogError(log, err)
 		return
 	}
 	if !ex {
-		LogError(log, fmt.Errorf("Path %v does not exist!", path))
+		LogError(log, fmt.Errorf("Path does not exist!"))
 		return
 	}
-	dirScanCount := 0
 	if recursive {
-		err = filepathWalk(path, func(fp string, fi os.FileInfo, err error) error {
+		filepathWalk(path, func(fp string, fi os.FileInfo, err error) error {
 			if err != nil {
 				LogError(log, err)
 				return nil
 			}
 			if fi.IsDir() {
-				dirScanCount++
-				if dirScanCount > dirLimit {
-					log.Errorf("Scanned maximum allowed directories. Returning collected files")
-					return DirScanLimitError
-				}
 				return nil
 
 			}
 			if fileMatchesAnyPattern(log, pattern, fi.Name()) {
 				validFiles = append(validFiles, fp)
-				if len(validFiles) > fileLimit {
-					log.Errorf("Found more than limit of %d files", FileCountLimit)
-					return FileCountLimitError
-				}
 			}
 			return nil
 		})
@@ -139,28 +122,26 @@ func getFiles(log log.T, path string, pattern []string, recursive bool, fileLimi
 		files, readDirErr := readDirFunc(path)
 		if readDirErr != nil {
 			LogError(log, readDirErr)
-			err = readDirErr
 			return
 		}
-
-		dirScanCount++
 		for _, fi := range files {
 			if fi.IsDir() {
 				continue
 			}
 			if fileMatchesAnyPattern(log, pattern, fi.Name()) {
 				validFiles = append(validFiles, filepath.Join(path, fi.Name()))
-				if len(validFiles) > fileLimit {
-					log.Errorf("Found more than limit of %d files", FileCountLimit)
-					err = FileCountLimitError
-					return
-				}
 			}
 		}
 
 	}
+	validFiles = removeDuplicatesString(validFiles)
+	log.Debugf("len validFiles %v", len(validFiles))
 
-	log.Infof("DirScanned %d", dirScanCount)
+	if len(validFiles) > FileCountLimit {
+		err = fmt.Errorf("File count limit exceeded. Max Allowed - %v, Received count - %v.", FileCountLimit, len(validFiles))
+		return
+	}
+	data, err = getMetaDataFunc(log, validFiles)
 	return
 }
 
@@ -172,40 +153,28 @@ func getAllMeta(log log.T, config model.Config) (data []model.FileData, err erro
 		LogError(log, err)
 		return
 	}
-	var fileList []string
 	for _, filter := range filterList {
 
 		var fullPath string
 		var getPathErr error
-		var dirScanLimit int
 		if fullPath, getPathErr = getFullPath(filter.Path, os.Getenv); getPathErr != nil {
 			LogError(log, getPathErr)
 			continue
 		}
-		fileLimit := FileCountLimit - len(fileList)
-		if filter.DirScanLimit == nil {
-			dirScanLimit = DirScanLimit
-		} else {
-			dirScanLimit = *filter.DirScanLimit
-		}
-		log.Infof("Dir Scan Limit %d", dirScanLimit)
-		foundFiles, getFilesErr := getFilesFunc(log, fullPath, filter.Pattern, filter.Recursive, fileLimit, dirScanLimit)
-		// We should only break, if we get limit error, otherwise we should continue collecting other data
-		if getFilesErr != nil {
-			LogError(log, getFilesErr)
-			if getFilesErr == FileCountLimitError || getFilesErr == DirScanLimitError {
-				return nil, getFilesErr
+		dataTmp, err := getFilesFunc(log, fullPath, filter.Pattern, filter.Recursive)
+		if err != nil {
+			LogError(log, err)
+			if err.Error() == FileCountLimitExceeded {
+				return nil, err
 			}
 		}
-		fileList = append(fileList, foundFiles...)
-		fileList = removeDuplicatesString(fileList)
+		data = removeDuplicatesFileData(append(data, dataTmp...))
+		if len(data) > FileCountLimit {
+			err = fmt.Errorf(FileCountLimitExceeded)
+			return nil, err
+		}
 	}
-
-	if len(fileList) > 0 {
-		data, err = getMetaDataFunc(log, fileList)
-	}
-	log.Infof("Collected Files %d", len(data))
-	return
+	return data, nil
 }
 
 //fileMatchesAnyPattern returns true if file name matches any pattern specified

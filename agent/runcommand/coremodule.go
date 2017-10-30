@@ -21,6 +21,7 @@ import (
 	"sync"
 
 	"github.com/aws/amazon-ssm-agent/agent/appconfig"
+	asocitscheduler "github.com/aws/amazon-ssm-agent/agent/association/scheduler"
 	"github.com/aws/amazon-ssm-agent/agent/context"
 	"github.com/aws/amazon-ssm-agent/agent/contracts"
 	"github.com/aws/amazon-ssm-agent/agent/fileutil"
@@ -68,7 +69,18 @@ func (s *RunCommandService) ModuleExecute(context context.T) (err error) {
 	}
 	//TODO move association polling out in the next CR
 	if s.pollAssociations {
-		s.assocProcessor.ModuleExecute(context)
+		associationFrequenceMinutes := context.AppConfig().Ssm.AssociationFrequencyMinutes
+		log.Info("Starting association polling")
+		log.Debugf("Association polling frequency is %v", associationFrequenceMinutes)
+		var job *scheduler.Job
+		if job, err = asocitscheduler.CreateScheduler(
+			log,
+			s.assocProcessor.ProcessAssociation,
+			associationFrequenceMinutes); err != nil {
+			context.Log().Errorf("unable to schedule association processor. %v", err)
+		}
+		s.assocProcessor.InitializeAssociationProcessor()
+		s.assocProcessor.SetPollJob(job)
 	}
 	return
 }
@@ -80,9 +92,18 @@ func (s *RunCommandService) ModuleRequestStop(stopType contracts.StopType) (err 
 	s.processor.Stop(stopType)
 
 	//TODO move this out once we have association moved to a different core module
-	if s.assocProcessor != nil {
-		s.assocProcessor.ModuleRequestStop(stopType)
-	}
+	var wg sync.WaitGroup
+	// shutdown the association task pool in a separate go routine
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		if s.assocProcessor != nil {
+			s.assocProcessor.ShutdownAndWait(stopType)
+		}
+	}()
+
+	// wait for everything to shutdown
+	wg.Wait()
 	return nil
 }
 

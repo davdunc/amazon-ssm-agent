@@ -63,7 +63,6 @@ const (
 	//aws-ssm-agent bookkeeping constants for inventory plugin
 	InventoryRootDirName         = "inventory"
 	CustomInventoryRootDirName   = "custom"
-	FileInventoryRootDirName     = "file"
 	InventoryContentHashFileName = "contentHash"
 
 	//aws-ssm-agent bookkeeping constants for compliance
@@ -117,12 +116,6 @@ const (
 
 	// PluginEC2ConfigUpdate is the name for ec2 config update plugin
 	PluginEC2ConfigUpdate = "aws:updateAgent"
-
-	// PluginDownloadContent is the name for downloadContent plugin
-	PluginDownloadContent = "aws:downloadContent"
-
-	// PluginRunDocument is the name of the run document plugin
-	PluginRunDocument = "aws:runDocument"
 
 	// PluginNameAwsSoftwareInventory is the name for inventory plugin
 	PluginNameAwsSoftwareInventory = "aws:softwareInventory"

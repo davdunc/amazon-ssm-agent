@@ -12851,9 +12851,6 @@ type Parameter struct {
 
 	// The parameter value.
 	Value *string `min:"1" type:"string"`
-
-	// The parameter version.
-	Version *int64 `type:"long"`
 }
 
 // String returns the string representation

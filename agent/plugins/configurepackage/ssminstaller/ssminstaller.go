@@ -287,17 +287,15 @@ func (inst *Installer) resolveAction(tracer trace.Tracer, actionName string) (ex
 	return false, nil, nil
 }
 
-func (inst *Installer) getEnvVars(actionName string, context context.T) (envVars map[string]string, err error) {
+func (inst *Installer) getEnvVars(context context.T) (envVars map[string]string, err error) {
 	log := context.Log()
 
 	envVars = make(map[string]string)
 
-	envVars["BWS_ACTION_NAME"] = actionName
-
-	// Copy proxy settings from the environment
-	envVars["https_proxy"] = os.Getenv("https_proxy")
-	envVars["http_proxy"] = os.Getenv("http_proxy")
-	envVars["no_proxy"] = os.Getenv("no_proxy")
+	// Set proxy settings from the environment
+	envVars["BWS_HTTPS_PROXY"] = os.Getenv("https_proxy")
+	envVars["BWS_HTTP_PROXY"] = os.Getenv("http_proxy")
+	envVars["BWS_NO_PROXY"] = os.Getenv("no_proxy")
 
 	env, err := inst.envdetectCollector.CollectData(log)
 	if err != nil {
@@ -307,14 +305,10 @@ func (inst *Installer) getEnvVars(actionName string, context context.T) (envVars
 	// (Some of these are already available to script as AWS_SSM_INSTANCE_ID and AWS_SSM_REGION_NAME)
 	envVars["BWS_PLATFORM_NAME"] = env.OperatingSystem.Platform
 	envVars["BWS_PLATFORM_VERSION"] = env.OperatingSystem.PlatformVersion
-	envVars["BWS_PLATFORM_FAMILY"] = env.OperatingSystem.PlatformFamily
 	envVars["BWS_ARCHITECTURE"] = env.OperatingSystem.Architecture
-	envVars["BWS_INIT_SYSTEM"] = env.OperatingSystem.InitSystem
-	envVars["BWS_PACKAGE_MANAGER"] = env.OperatingSystem.PackageManager
 	envVars["BWS_INSTANCE_ID"] = env.Ec2Infrastructure.InstanceID
 	envVars["BWS_INSTANCE_TYPE"] = env.Ec2Infrastructure.InstanceType
 	envVars["BWS_REGION"] = env.Ec2Infrastructure.Region
-	envVars["BWS_ACCOUNT_ID"] = env.Ec2Infrastructure.AccountID
 	envVars["BWS_AVAILABILITY_ZONE"] = env.Ec2Infrastructure.AvailabilityZone
 
 	return envVars, err
@@ -335,7 +329,7 @@ func (inst *Installer) readAction(tracer trace.Tracer, context context.T, action
 
 	if action.actionType == ACTION_TYPE_SH {
 		var envVars map[string]string
-		if envVars, err = inst.getEnvVars(actionName, context); err != nil {
+		if envVars, err = inst.getEnvVars(context); err != nil {
 			return exists, nil, "", err
 		}
 
@@ -346,7 +340,7 @@ func (inst *Installer) readAction(tracer trace.Tracer, context context.T, action
 		return exists, pluginsInfo, workingDir, nil
 	} else if action.actionType == ACTION_TYPE_PS1 {
 		var envVars map[string]string
-		if envVars, err = inst.getEnvVars(actionName, context); err != nil {
+		if envVars, err = inst.getEnvVars(context); err != nil {
 			return exists, nil, "", err
 		}
 

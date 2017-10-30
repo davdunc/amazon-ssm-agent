@@ -144,39 +144,39 @@ const (
 
 // A Parameter in the DocumentContent of an MDS message.
 type Parameter struct {
-	DefaultVal     interface{} `json:"default" yaml:"default"`
-	Description    string      `json:"description" yaml:"description"`
-	ParamType      string      `json:"type" yaml:"type"`
-	AllowedVal     []string    `json:"allowedValues" yaml:"allowedValues"`
-	AllowedPattern string      `json:"allowedPattern" yaml:"allowedPattern"`
+	DefaultVal     interface{} `json:"default"`
+	Description    string      `json:"description"`
+	ParamType      string      `json:"type"`
+	AllowedVal     []string    `json:"allowedValues"`
+	AllowedPattern string      `json:"allowedPattern"`
 }
 
 // PluginConfig stores plugin configuration
 type PluginConfig struct {
-	Settings    interface{} `json:"settings" yaml:"settings"`
-	Properties  interface{} `json:"properties" yaml:"properties"`
-	Description string      `json:"description" yaml:"description"`
+	Settings    interface{} `json:"settings"`
+	Properties  interface{} `json:"properties"`
+	Description string      `json:"description"`
 }
 
 // InstancePluginConfig stores plugin configuration
 type InstancePluginConfig struct {
-	Action        string              `json:"action" yaml:"action"` // plugin name
-	Inputs        interface{}         `json:"inputs" yaml:"inputs"` // Properties
-	MaxAttempts   int                 `json:"maxAttempts" yaml:"maxAttempts"`
-	Name          string              `json:"name" yaml:"name"` // unique identifier
-	OnFailure     string              `json:"onFailure" yaml:"onFailure"`
-	Settings      interface{}         `json:"settings" yaml:"settings"`
-	Timeout       int                 `json:"timeoutSeconds" yaml:"timeoutSeconds"`
-	Preconditions map[string][]string `json:"precondition" yaml:"precondition"`
+	Action        string              `json:"action"` // plugin name
+	Inputs        interface{}         `json:"inputs"` // Properties
+	MaxAttempts   int                 `json:"maxAttempts"`
+	Name          string              `json:"name"` // unique identifier
+	OnFailure     string              `json:"onFailure"`
+	Settings      interface{}         `json:"settings"`
+	Timeout       int                 `json:"timeoutSeconds"`
+	Preconditions map[string][]string `json:"precondition"`
 }
 
 // DocumentContent object which represents ssm document content.
 type DocumentContent struct {
-	SchemaVersion string                   `json:"schemaVersion" yaml:"schemaVersion"`
-	Description   string                   `json:"description" yaml:"description"`
-	RuntimeConfig map[string]*PluginConfig `json:"runtimeConfig" yaml:"runtimeConfig"`
-	MainSteps     []*InstancePluginConfig  `json:"mainSteps" yaml:"mainSteps"`
-	Parameters    map[string]*Parameter    `json:"parameters" yaml:"parameters"`
+	SchemaVersion string                   `json:"schemaVersion"`
+	Description   string                   `json:"description"`
+	RuntimeConfig map[string]*PluginConfig `json:"runtimeConfig"`
+	MainSteps     []*InstancePluginConfig  `json:"mainSteps"`
+	Parameters    map[string]*Parameter    `json:"parameters"`
 }
 
 // AdditionalInfo section in agent response

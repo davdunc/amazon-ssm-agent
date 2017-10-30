@@ -113,8 +113,7 @@ func (ds *PackageService) PackageServiceName() string {
 }
 
 // DownloadManifest looks up the latest version of a given package for this platform/arch in S3 or manifest at source location
-func (ds *PackageService) DownloadManifest(tracer trace.Tracer, packageName string, version string) (string, string, error) {
-	//TODO: Redesign the DownloadManifest in the packageService to return the manifest, once ssms3 gets deleted
+func (ds *PackageService) DownloadManifest(tracer trace.Tracer, packageName string, version string) (string, error) {
 	var targetVersion string
 	var err error
 
@@ -124,15 +123,15 @@ func (ds *PackageService) DownloadManifest(tracer trace.Tracer, packageName stri
 		targetVersion, err = getLatestS3Version(tracer, ds.packageURL, packageName)
 		tracer.CurrentTrace().AppendInfof("latest version: %v", targetVersion)
 		if err != nil {
-			return packageName, "", err
+			return "", err
 		}
 		// handle case where we couldn't figure out which version to install but not because of an error in the S3 call
 		if targetVersion == "" {
-			return packageName, "", fmt.Errorf("no latest version found for package %v on platform %v", packageName, appconfig.PackagePlatform)
+			return "", fmt.Errorf("no latest version found for package %v on platform %v", packageName, appconfig.PackagePlatform)
 		}
 	}
 
-	return packageName, targetVersion, err
+	return targetVersion, err
 }
 
 func (ds *PackageService) DownloadArtifact(tracer trace.Tracer, packageName string, version string) (string, error) {
